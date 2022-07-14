@@ -10,8 +10,10 @@ from sklearn.tree import plot_tree
 #loads data
 X = np.loadtxt('data/10/XXX-10.csv', delimiter = ',')
 N = X.shape[0]
-
 x = np.reshape(X, (N,10, 2))
+mean = np.mean(x, axis = 1)
+newX = np.concatenate((X, mean), axis = 1)
+
 D = np.zeros((N, 9))
 for c in range(N):
     d = [ np.linalg.norm(x[c, 0, :] - x[c, i, :]) for i in range(1,10)]
@@ -32,15 +34,21 @@ print(Y_onehot[0])
 
 #test some classifiers using the 0-th particle communication vector
 
-X_train, X_test, y_train, y_test = train_test_split(D, Y_onehot, stratify=Y_onehot, random_state=1)
+X_train, X_test, y_train, y_test = train_test_split(newX, Y_onehot, stratify=Y_onehot, random_state=1)
 
 
-clf = MLPClassifier(hidden_layer_sizes=(100,100,), max_iter=1000, random_state=1, verbose = 1).fit(X_train, y_train)
+clf = MLPClassifier(hidden_layer_sizes=(25,), max_iter=1000, random_state=1, verbose = 1).fit(X_train, y_train)
+
 print(clf.predict_proba(X_test[:1]))
 print(clf.predict(X_test[:5, :]))
 print(clf.score(X_test, y_test))
 
+np.savetxt('coefs_[0].csv', clf.coefs_[0], delimiter=',')
+np.savetxt('intercepts_[0].csv', clf.intercepts_[0], delimiter=',')
+np.savetxt('coefs_[1].csv', clf.coefs_[1], delimiter=',')
+np.savetxt('intercepts_[1].csv', clf.intercepts_[1], delimiter=',')
 
+"""
 feature_names = []
 for i in range(int(D.shape[1])):
     feature_names.append(f"d{i+1}")
@@ -66,4 +74,4 @@ ax.set_title("Feature importances using MDI")
 ax.set_ylabel("Mean decrease in impurity")
 fig.tight_layout()
 plt.show()
-
+"""
