@@ -1,3 +1,4 @@
+from termios import TAB0
 import numpy as np
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
@@ -22,11 +23,15 @@ class Net(nn.Module):
 def L(x):
     return np.sum([ np.sum((c - x) ** 2) for c in x ])
 
-filesn = ['XXX-10.csv', 'XXX-10-23wrz-A.csv', 'XXX-10-23wrz-B.csv']
+
+
+
+filesn = ['XXX-10-7paz-A.csv', 'XXX-10-7paz-B.csv', 'XXX-10-7paz-c.csv', 'XXX-10-7paz-d.csv' ]
+
 dirn = 'data/10/'
 xs = []
 N = 10
-T = 20
+T = 40
 fixedI = 0
 
 for fn in filesn:
@@ -40,9 +45,11 @@ trajs = int(newX.shape[0] / T)
 print(trajs)
 
 
+
+
 #labels for the first particle
 ys = []
-fileCn = ['CCC-10.csv', 'CCC-10-23wrz-A.csv', 'CCC-10-23wrz-B.csv']
+fileCn = ['CCC-10-7paz-A.csv', 'CCC-10-7paz-B.csv', 'CCC-10-7paz-c.csv', 'CCC-10-7paz-d.csv' ]
 for fn in fileCn:
     Y = np.loadtxt(dirn + fn, delimiter = ',')[:,fixedI].astype(int)
     ys.append( Y )
@@ -52,16 +59,16 @@ Y_logits = np.concatenate(ys, axis = 0)
 #convention here is that i-th row is the i-th particle communication
 increments = np.zeros_like(newX)
 for i in range(trajs):    
-    increments[i*20 : (i+1)*20 - 1] = newX[i*20 + 1 : (i+1)*20] - newX[i*20 : (i+1)*20 - 1]
+    increments[i*T : (i+1)*T - 1] = newX[i*T + 1 : (i+1)*T] - newX[i*T : (i+1)*T - 1]
 
 tildeX = newX.copy()
 
 for i in range(trajs):    
-    tildeX[i*20 : (i+1)*20 - 1, fixedI, : ] = newX[i*20 + 1 : (i+1)*20, fixedI, : ]
+    tildeX[i*T : (i+1)*T - 1, fixedI, : ] = newX[i*T + 1 : (i+1)*T, fixedI, : ]
 
 todelete = []
 for i in range(trajs):    
-    todelete.append((i+1)*20 - 1)
+    todelete.append((i+1)*TAB0 - 1)
 
 increments = np.delete(increments, todelete, axis = 0)
 newX = np.delete(newX, todelete, axis = 0)
@@ -89,12 +96,31 @@ for i in range(N):
     increments_group.append( increments[ curind ].reshape((len(curind), 2*N)) )
     Labels_group.append( Labels[ curind ] )
 
+
+"""
+print(X_group[1][0])
+print(tildeX_group[1][0])
+print(L(tildeX_group[1][0]) - L (X_group[1][0]))
+
+def pochodna(X):
+    print([(X[0] - x) for x in X])
+    print([(X[0] - x)*(X[0] - X[1]) for x in X])
+    return np.sum( [(X[0] - x)*(X[0] - X[1]) for x in X] )
+
+print(X_group[1][0].reshape((10, 2)))
+print(pochodna(X_group[1][0].reshape((10, 2))))
+dt = 0.01
+print((-4)*dt/N * pochodna(X_group[1][0].reshape((10, 2))))
+
+exit(1)
+"""
+
 #test if there are nonzero increments where shouldn't
 print(np.where(increments_group[0][:, 0][0] != 0.) )
 print(np.where(increments_group[0][:, 0][1] != 0.) )
 
 
-currentg = 0
+currentg = 4
 print("groups")
 print(X_group[currentg][0])
 print(tildeX_group[currentg][0])
@@ -107,7 +133,7 @@ net = Net()
 optimizer = optim.Adam(net.parameters(), lr=0.001)
 loss = nn.MSELoss()
 
-for i in range(10000):
+for i in range(110000):
     optimizer.zero_grad()
     out = net(torch.FloatTensor(X_train))
     l = loss(out, torch.squeeze(torch.FloatTensor(y_train)))
@@ -118,4 +144,5 @@ for i in range(10000):
 net.eval()
 out_test = net( torch.FloatTensor(X_test) )
 
-np.savetxt(f'sym_matrix{currentg}.csv', net.fc.weight.detach().numpy(), delimiter=',' )
+sym = net.fc.weight.detach().numpy() + net.fc.weight.detach().numpy().T
+np.savetxt(f'A{fixedI}{currentg}.csv', sym, delimiter=',' ,  fmt="%.2e")

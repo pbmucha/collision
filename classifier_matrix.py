@@ -39,7 +39,7 @@ class NetSym(nn.Module):
     name = "Net"
     def __init__(self):
         super().__init__()
-        self.dim = 22
+        self.dim = 20
         self.N = 10
         self.fc = nn.ModuleList([LinearSymmetric(self.dim ) for i in range(self.N)])
 
@@ -55,8 +55,9 @@ class NetSym(nn.Module):
 X = np.loadtxt('data/10/XXX-10.csv', delimiter = ',')
 N = X.shape[0]
 x = np.reshape(X, (N,10, 2))
-mean = np.mean(x, axis = 1)
-newX = np.concatenate((X, mean), axis = 1)
+#mean = np.mean(x, axis = 1)
+#newX = np.concatenate((X, mean), axis = 1)
+newX = x
 
 D = np.zeros((N, 9))
 for c in range(N):
@@ -64,6 +65,8 @@ for c in range(N):
     D[c, :] = d
 
 print(D[0])
+
+newX = np.reshape(x, (N, 20))
 
 Y_logits = np.loadtxt('data/10/CCC-10.csv', delimiter = ',')[:,0].astype(int)
 
