@@ -63,7 +63,6 @@ fileLn = ['LLL-24paz-10-100k.cvs']
 ls = []
 for fn in fileLn:
     L = np.loadtxt(dirn + fn, delimiter = ',')
-    L = L.astype(int)
     ls.append(L)
 
 Labels = np.concatenate(ls, axis = 0)
@@ -83,8 +82,8 @@ for i in range(N):
     curind = np.where(Y_logits == i)[0]
     print(f"group particle {i} len {len(curind)}")
     inds.append( curind )
-    X0_group.append( newX0[ curind ][:, :].reshape((len(curind), N)) )
-    X1_group.append( newX1[ curind ][:, :].reshape((len(curind), N)) )
+    X0_group.append( newX0[ curind ].reshape((len(curind), N)) )
+    X1_group.append( newX1[ curind ].reshape((len(curind), N)) )
     Labels_group.append( Labels[ curind ] )
 
 print(X0_group[0].shape, X1_group[0].shape, Labels_group[0].shape)
@@ -96,9 +95,18 @@ print(X0_group[currentg][0])
 print(X1_group[currentg][0])
 print(Labels_group[currentg][0])
 
-X0_train = torch.FloatTensor(X0_group[currentg])
-X1_train = torch.FloatTensor(X1_group[currentg])
-Y_train = Labels_group[currentg]
+N = X0_group[currentg].shape[0]
+
+Ntrain = int(0.9 * N)
+
+X0_train = torch.FloatTensor(X0_group[currentg])[:Ntrain]
+X1_train = torch.FloatTensor(X1_group[currentg])[:Ntrain]
+Y_train = Labels_group[currentg][:Ntrain]
+
+X0_test = torch.FloatTensor(X0_group[currentg])[Ntrain:]
+X1_test = torch.FloatTensor(X1_group[currentg])[Ntrain:]
+Y_test = Labels_group[currentg][Ntrain:]
+
 
 net = ComponentwiseANet()
 optimizer = optim.Adam(net.parameters(), lr=0.001)
@@ -113,6 +121,12 @@ for i in range(20000):
     print(l.item())
 
 net.eval()
+
+r = net(X0_test, X1_test)
+
+print(r[:10], Y_test[:10])
+
+print( np.sum( (r.detach().numpy() - Y_test) ** 2 ) / (N-Ntrain) )
 
 np.savetxt(f'A_0_{fixedI}{currentg}.csv', net.fc1.weight.detach().numpy() + net.fc1.weight.detach().numpy().T, delimiter=',' )
 np.savetxt(f'A_1_{fixedI}{currentg}.csv', net.fc2.weight.detach().numpy() + net.fc2.weight.detach().numpy().T, delimiter=',' )
